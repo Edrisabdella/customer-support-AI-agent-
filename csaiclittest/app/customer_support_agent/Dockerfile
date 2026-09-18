@@ -1,0 +1,23 @@
+FROM public.ecr.aws/docker/library/python:3.12-slim-trixie
+RUN pip install --no-cache-dir uv
+WORKDIR /app
+
+ENV UV_SYSTEM_PYTHON=1 \
+    UV_COMPILE_BYTECODE=1 \
+    UV_NO_PROGRESS=1 \
+    PYTHONUNBUFFERED=1 \
+    DOCKER_CONTAINER=1
+
+RUN useradd -m -u 1000 bedrock_agentcore
+
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project
+
+COPY --chown=bedrock_agentcore:bedrock_agentcore . .
+RUN uv sync --frozen --no-dev
+
+USER bedrock_agentcore
+
+EXPOSE 8080 8000 9000
+
+CMD ["opentelemetry-instrument", "python", "-m", "main"]

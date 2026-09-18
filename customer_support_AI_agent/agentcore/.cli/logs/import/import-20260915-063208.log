@@ -1,0 +1,17 @@
+================================================================================
+AGENTCORE IMPORT LOG
+Command: import
+Started: 2026-09-15T03:32:08.040Z
+================================================================================
+
+
+[06:32:08] STEP: Validate project context
+[06:32:08] Error: No agentcore project found in the current directory.
+Run `agentcore create <name>` first, then run import from inside the project.
+[06:32:08] Status: FAILED
+[06:32:08] Duration: 3ms
+
+================================================================================
+FAILED
+Total Duration: 13ms
+================================================================================

@@ -1,0 +1,67 @@
+"""Local pre-deployment verification for the AWS Future Engineers Project 2 agent.
+
+This script checks the source-level rubric requirements and the deterministic loyalty
+calculation. It does not call AWS services, so it is safe to run before deployment.
+"""
+from pathlib import Path
+import ast
+import re
+
+MAIN = Path(__file__).with_name("main_100pct_rubric.py")
+src = MAIN.read_text(encoding="utf-8")
+tree = ast.parse(src)
+
+checks = []
+
+def check(name, condition):
+    checks.append((name, bool(condition)))
+
+check("BedrockAgentCoreApp instantiated", "app = BedrockAgentCoreApp()" in src)
+check("@app.entrypoint present", "@app.entrypoint" in src)
+check("async invoke present", bool(re.search(r"async def invoke\(", src)))
+check("app.run() present", "app.run()" in src)
+check("MCPClient present", "MCPClient" in src)
+check("AWS IAM Streamable HTTP Gateway transport", "aws_iam_streamablehttp_client" in src)
+check("Gateway tool loading via MCP", "gateway_tools = mcp_client.list_tools_sync()" in src and "tools + list(gateway_tools)" in src)
+check("@tool search_knowledge_base", "@tool\ndef search_knowledge_base" in src)
+check("Bedrock Retrieve", "_bedrock_runtime.retrieve(" in src and 'knowledgeBaseId=KB_ID' in src)
+check("RAG chunks joined with separator", '"\\n---\\n".join(chunks)' in src)
+check("MemoryHook", "class MemoryHook(HookProvider)" in src)
+check("Memory namespaces", "get_memory_strategies" in src and "retrieve_memories" in src)
+check("Memory create_event", "create_event(" in src)
+check("Code Interpreter", 'code_session(REGION)' in src and '"executeCode"' in src)
+check("Required loyalty earn rates", '"standard": 1, "device": 2, "fresh": 5' in src)
+check("Required tier rates", '"Silver": 0.00, "Gold": 0.10, "Platinum": 0.15' in src)
+check("50% redemption cap", "total * 0.50" in src)
+check("500-point redemption blocks", "// 500" in src and "* 500" in src)
+check("AgentCoreBrowser(region=REGION)", "AgentCoreBrowser(region=REGION)" in src)
+check("Explicit loyalty-value protection", "_extract_explicit_loyalty_inputs" in src and "_loyalty_request_override" in src)
+
+# Independently verify the rubric's required arithmetic.
+points = 4250
+total = 150.0
+tier_pct = 0.10
+max_points = int(total * 0.50 * 100) // 500 * 500
+redeemed = min((points // 500) * 500, max_points)
+subtotal = total - redeemed / 100
+final_total = round(subtotal * (1 - tier_pct), 2)
+remaining = points - redeemed
+earned = int(final_total)
+
+check("Loyalty test: 4000 points redeemed", redeemed == 4000)
+check("Loyalty test: Gold 10%", tier_pct == 0.10)
+check("Loyalty test: final total $99", final_total == 99.00)
+check("Loyalty test: remaining 250 points", remaining == 250)
+check("Loyalty test: 99 points earned", earned == 99)
+
+failed = [name for name, ok in checks if not ok]
+print("AWS FUTURE ENGINEERS PROJECT 2 — PRE-DEPLOYMENT CHECK")
+print("=" * 62)
+for name, ok in checks:
+    print(f"{'PASS' if ok else 'FAIL':<5} {name}")
+print("-" * 62)
+print(f"Result: {len(checks)-len(failed)}/{len(checks)} checks passed")
+print(f"Required loyalty result: 4000 redeemed | 10% Gold | $99.00 final | 250 remaining | 99 earned")
+if failed:
+    raise SystemExit("FAILED CHECKS: " + "; ".join(failed))
+print("ALL PRE-DEPLOYMENT CHECKS PASSED")

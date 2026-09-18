@@ -1,0 +1,33 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "GatewayWorkloadAccessToken",
+      "Effect": "Allow",
+      "Action": [
+        "bedrock-agentcore:GetWorkloadAccessToken"
+      ],
+      "Resource": [
+        "arn:aws:bedrock-agentcore:us-east-1:601661065684:workload-identity-directory/default",
+        "arn:aws:bedrock-agentcore:us-east-1:601661065684:workload-identity-directory/default/workload-identity/customersupportgateway-uxvyatjhl6*"
+      ]
+    },
+    {
+      "Sid": "KnowledgeBaseRetrieve",
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:GetKnowledgeBase",
+        "bedrock:Retrieve"
+      ],
+      "Resource": "arn:aws:bedrock:us-east-1:601661065684:knowledge-base/W6RC69EXD5"
+    },
+    {
+      "Sid": "LambdaRefundProcessor",
+      "Effect": "Allow",
+      "Action": [
+        "lambda:InvokeFunction"
+      ],
+      "Resource": "arn:aws:lambda:us-east-1:601661065684:function:refund_processor"
+    }
+  ]
+}

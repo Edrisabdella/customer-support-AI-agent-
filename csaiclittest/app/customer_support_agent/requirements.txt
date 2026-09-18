@@ -1,0 +1,9 @@
+bedrock-agentcore
+strands-agents
+strands-agents-tools
+aws-opentelemetry-distro
+mcp==1.30.0
+mcp-proxy-for-aws==1.6.6
+boto3
+botocore
+nest-asyncio
