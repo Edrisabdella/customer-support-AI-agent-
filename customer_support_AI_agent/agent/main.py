@@ -1,6 +1,7 @@
 """
 Customer Support AI Agent
 =========================
+Production-oriented completion of the Udacity CD14763 project starter.
 
 The implementation follows the supplied project instructions and rubric:
 - AgentCore Runtime entrypoint
@@ -12,7 +13,8 @@ The implementation follows the supplied project instructions and rubric:
 
 Configuration is intentionally read from environment variables so AWS
 credentials and account-specific resource identifiers are never committed.
-Required variables: GATEWAY_URL, KB_ID, MEMORY_ID. AWS_REGION is optional
+Required variables: GATEWAY_URL, KB_ID, MEMORY_ID. BROWSER_ID is optional
+and defaults to the AWS-managed browser `aws.browser.v1`. AWS_REGION is optional
 and defaults to us-east-1.
 """
 
@@ -55,6 +57,7 @@ GATEWAY_URL = os.getenv(
 KB_ID = os.getenv("KB_ID", "W6RC69EXD5").strip()
 REGION = os.getenv("AWS_REGION", "us-east-1").strip() or "us-east-1"
 MEMORY_ID = os.getenv("MEMORY_ID", "CustomerSupportMemory-ECNYSn3F91").strip()
+BROWSER_ID = os.getenv("BROWSER_ID", "aws.browser.v1").strip() or "aws.browser.v1"
 
 # ── Section 3 — Model and Clients ────────────────────────────────────────────────
 model_id = "global.amazon.nova-2-lite-v1:0"
@@ -492,11 +495,25 @@ print(json.dumps(result))
     except Exception as exc:
         logger.warning("Code Interpreter execution failed; using deterministic fallback: %s", exc)
 
-    # The rubric requires a safe fallback. Returning the full deterministic
-    # breakdown is strictly more useful than exposing an incomplete result.
-    fallback = dict(local)
-    fallback["calculation_mode"] = "deterministic-fallback"
-    fallback["code_interpreter"] = False
+    # Required rubric fallback: compute ONLY the tier discount locally.
+    # Point redemption is intentionally disabled when the sandbox is unavailable.
+    tier_name = str(tier).strip().title()
+    tier_pct = {"Silver": 0.00, "Gold": 0.10, "Platinum": 0.15}.get(tier_name, 0.0)
+    total = max(0.0, float(order_total))
+    tier_discount_amount = round(total * tier_pct, 2)
+    fallback = {
+        "points_redeemed": 0,
+        "tier_discount_pct": tier_pct,
+        "tier_discount_amount": tier_discount_amount,
+        "final_total": round(max(0.0, total - tier_discount_amount), 2),
+        "total_savings": tier_discount_amount,
+        "points_earned": int(max(0.0, total - tier_discount_amount) * {"standard": 1, "device": 2, "fresh": 5}.get(
+            str(product_category).strip().lower(), 1
+        )),
+        "remaining_points": max(0, int(loyalty_points)),
+        "calculation_mode": "tier-only-fallback",
+        "code_interpreter": False,
+    }
     return json.dumps(fallback)
 
 # ── Section 8 — Agent Entrypoint ─────────────────────────────────────────────────
@@ -516,10 +533,11 @@ TOOL ROUTING:
    exact points, tier, order total, and product category; do not substitute values.
    If the current message explicitly gives an order amount (for example, "$150"),
    that amount is authoritative even if memory or a Gateway order has a different amount.
-5. Use the browser for requested live public web information, including direct URL tests.
-   For a direct page-title request, use the browser tool, navigate to the exact URL,
-   then report the title/page text returned by the browser. Do not claim failure merely
-   because an unrelated tool is unavailable. Keep browser navigation minimal.
+5. Use the AgentCore Browser tool for requested live public web information.
+   For a direct URL/page-title request, call the browser tool, navigate to the exact URL,
+   and base the answer only on content returned by that live browser session. Never infer
+   or guess a page title. Keep browser navigation minimal and do not substitute memory,
+   Gateway, or model knowledge for live browser results.
 6. Use retrieved memory naturally. If memory says the customer is Jane and prefers
    concise responses, answer accordingly. Never reveal internal memory mechanics.
 7. If a required tool is unavailable, say so and do not fabricate a result.
@@ -592,12 +610,16 @@ async def invoke(payload, context=None):
     ))
 
     browser_tool_available = True
+    browser_tool = None
     try:
-        browser = AgentCoreBrowser(region=REGION)
+        # BROWSER_ID may be the AWS-managed browser (aws.browser.v1) or a
+        # custom browser configured for PUBLIC network access.
+        browser = AgentCoreBrowser(region=REGION, identifier=BROWSER_ID)
         browser_tool = browser.browser
+        logger.info("AgentCore Browser initialized with identifier %s", BROWSER_ID)
     except Exception as exc:
         browser_tool_available = False
-        logger.warning("Browser initialization failed: %s", exc)
+        logger.warning("AgentCore Browser initialization failed for %s: %s", BROWSER_ID, exc)
 
     if is_browser_request and browser_tool_available:
         browser_prompt = (
@@ -629,7 +651,9 @@ async def invoke(payload, context=None):
             "safely report live webpage content."
         )
 
-    tools = [search_knowledge_base, calculate_loyalty_discount, browser_tool]
+    tools = [search_knowledge_base, calculate_loyalty_discount]
+    if browser_tool_available and browser_tool is not None:
+        tools.append(browser_tool)
 
     if _is_placeholder(GATEWAY_URL):
         if _is_gateway_request(user_input):
