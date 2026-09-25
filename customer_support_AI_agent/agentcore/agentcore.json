@@ -23,7 +23,61 @@
   "credentials": [],
   "evaluators": [],
   "onlineEvalConfigs": [],
-  "agentCoreGateways": [],
+  "agentCoreGateways": [
+    {
+      "name": "customer-support-gateway",
+      "protocolType": "None",
+      "description": "Gateway for customer-support-gateway",
+      "targets": [
+        {
+          "name": "CustomerSupportKBTarget",
+          "targetType": "connector",
+          "connectorId": "bedrock-knowledge-bases",
+          "configurations": [
+            {
+              "name": "AgenticRetrieveStream",
+              "description": "Streaming endpoint for agentic retrieval from knowledge bases. Performs multi-step retrieval with planning and returns results as a stream of events.",
+              "parameterValues": {
+                "retrievers": [
+                  {
+                    "configuration": {
+                      "knowledgeBase": {
+                        "knowledgeBaseId": "7I0DUHIZCU"
+                      }
+                    }
+                  }
+                ],
+                "agenticRetrieveConfiguration": {
+                  "foundationModelType": "MANAGED",
+                  "rerankingModelType": "MANAGED"
+                }
+              },
+              "parameterOverrides": []
+            },
+            {
+              "name": "Retrieve",
+              "description": "Queries a knowledge base and retrieves information from it.",
+              "parameterValues": {
+                "knowledgeBaseId": "7I0DUHIZCU"
+              },
+              "parameterOverrides": []
+            }
+          ]
+        },
+        {
+          "name": "refund-processor",
+          "targetType": "lambdaFunctionArn",
+          "lambdaFunctionArn": {
+            "lambdaArn": "arn:aws:lambda:us-east-1:601661065684:function:refund_processor",
+            "toolSchemaFile": ".\\lambda\\lambda_schema.json"
+          }
+        }
+      ],
+      "authorizerType": "NONE",
+      "enableSemanticSearch": true,
+      "exceptionLevel": "NONE"
+    }
+  ],
   "policyEngines": [],
   "configBundles": [],
   "abTests": [],

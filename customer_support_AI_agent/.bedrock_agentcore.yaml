@@ -1,15 +1,15 @@
-default_agent: customer_support_AI_agent
+default_agent: customer_support_agent
 agents:
   customer_support_agent:
     name: customer_support_agent
     language: python
     node_version: '20'
-    entrypoint: C:/Users/user/Desktop/A AWS FUTURE ENGINEERS/PROJECT2/customer_support_AI_agent/main.py
+    entrypoint: C:/Users/user/Desktop/af2/customer-support-AI-agent-/customer_support_AI_agent/main.py
     deployment_type: container
     runtime_type: null
     platform: linux/arm64
     container_runtime: none
-    source_path: C:\Users\user\Desktop\A AWS FUTURE ENGINEERS\PROJECT2\customer_support_AI_agent
+    source_path: C:\Users\user\Desktop\af2\customer-support-AI-agent-\customer_support_AI_agent
     aws:
       execution_role: arn:aws:iam::601661065684:role/AmazonBedrockAgentCoreSDKRuntime-us-east-1-aa96c3a063
       execution_role_auto_create: false
@@ -39,7 +39,7 @@ agents:
       source_bucket: null
     memory:
       mode: STM_AND_LTM
-      memory_id: CustomerSupportMemory-ECNYSn3F91
+      memory_id: customer_support_agent_mem-UYY9NNGNkf
       memory_arn: null
       memory_name: customer_support_agent_memory
       event_expiry_days: 30

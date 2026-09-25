@@ -1,0 +1,44 @@
+﻿[
+  {
+    "name": "get_order",
+    "description": "Get the details and current status of a customer order.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "order_id": {
+          "type": "string",
+          "description": "Order ID, for example ORD-001"
+        }
+      },
+      "required": ["order_id"]
+    }
+  },
+  {
+    "name": "get_customer_orders",
+    "description": "Get all orders belonging to a customer.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "customer_id": {
+          "type": "string",
+          "description": "Customer ID, for example CUST-123"
+        }
+      },
+      "required": ["customer_id"]
+    }
+  },
+  {
+    "name": "get_customer",
+    "description": "Get customer information.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "customer_id": {
+          "type": "string",
+          "description": "Customer ID, for example CUST-123"
+        }
+      },
+      "required": ["customer_id"]
+    }
+  }
+]

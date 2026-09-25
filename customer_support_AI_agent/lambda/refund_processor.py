@@ -1,213 +1,107 @@
+"""
+Refund Processor Lambda
+========================
+Handles refund-related operations for the customer support agent.
+Invoked directly by the AgentCore Gateway (not through API Gateway).
+
+How tool routing works:
+  AgentCore Gateway passes the tool name in the Lambda client context under
+  the key "bedrockAgentCoreToolName".  The value has the format:
+    "TargetName___toolName"
+  This handler strips the prefix and branches on the bare tool name.
+
+Tools handled:
+  initiate_refund     — create and approve a new refund
+  check_refund_status — look up the status of an existing refund
+  get_return_label    — generate a prepaid return shipping label
+
+Tool schema is declared in lambda_schema (JSON file in the same directory).
+That schema tells the Gateway which arguments to pass for each tool.
+"""
 import json
-import uuid
+import random
+import string
 from datetime import datetime, timedelta, timezone
 
 
-# ============================================================
-# RESPONSE HELPERS
-# ============================================================
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
-def success_response(data):
-    return {
-        "statusCode": 200,
-        "body": json.dumps(data),
-    }
-
-
-def error_response(message, status_code=400):
-    return {
-        "statusCode": status_code,
-        "body": json.dumps({
-            "error": message
-        }),
-    }
-
-
-# ============================================================
-# AGENTCORE TOOL NAME
-# ============================================================
-
-def get_tool_name(context):
+def _new_refund_id() -> str:
     """
-    AgentCore Gateway provides the full tool name through
-    context.client_context.custom.
+    Generate a unique refund ID of the form REF-XXXXXXXX.
 
-    Example:
-        refund-processor___check_refund_status
-
-    We strip the target prefix and keep:
-        check_refund_status
+    Uses random ASCII uppercase letters and digits.  In a real system this
+    would be a database-generated ID (e.g. a UUID or auto-increment key).
     """
-
-    try:
-        custom = context.client_context.custom or {}
-
-        full_tool_name = custom.get(
-            "bedrockAgentCoreToolName",
-            ""
-        )
-
-        if "___" in full_tool_name:
-            return full_tool_name.split("___", 1)[1]
-
-        return full_tool_name
-
-    except Exception:
-        return ""
-
-
-# ============================================================
-# INITIATE REFUND
-# ============================================================
-
-def initiate_refund(event):
-
-    order_id = event.get("order_id")
-    reason = event.get("reason")
-    amount = event.get("amount")
-
-    if not order_id:
-        return error_response(
-            "order_id is required"
-        )
-
-    if not reason:
-        return error_response(
-            "reason is required"
-        )
-
-    refund_id = (
-        "REF-" +
-        str(uuid.uuid4()).replace("-", "")[:8].upper()
+    return "REF-" + "".join(
+        random.choices(string.ascii_uppercase + string.digits, k=8)
     )
 
-    created_at = datetime.now(
-        timezone.utc
-    ).isoformat()
 
-    if amount is None:
-        amount = 0
-
-    result = {
-        "refund_id": refund_id,
-        "order_id": str(order_id).upper(),
-        "status": "APPROVED",
-        "amount": float(amount),
-        "reason": reason,
-        "message": "Refund has been initiated successfully.",
-        "created_at": created_at,
-    }
-
-    return success_response(result)
-
-
-# ============================================================
-# CHECK REFUND STATUS
-# ============================================================
-
-def check_refund_status(event):
-
-    refund_id = event.get("refund_id")
-
-    if not refund_id:
-        return error_response(
-            "refund_id is required"
-        )
-
-    result = {
-        "refund_id": refund_id,
-        "status": "PROCESSING",
-        "eta": "2-3 business days",
-    }
-
-    return success_response(result)
-
-
-# ============================================================
-# GET RETURN LABEL
-# ============================================================
-
-def get_return_label(event):
-
-    order_id = event.get("order_id")
-
-    if not order_id:
-        return error_response(
-            "order_id is required"
-        )
-
-    order_id = str(order_id).upper()
-
-    # Generate a return label validity date 30 days
-    # from the time the label is requested.
-    valid_until = (
-        datetime.now(timezone.utc) +
-        timedelta(days=30)
-    ).date().isoformat()
-
-    result = {
-        "order_id": order_id,
-        "label_url": (
-            f"https://returns.amazon.com/label/{order_id}"
-        ),
-        "carrier": "UPS",
-        "valid_until": valid_until,
-    }
-
-    return success_response(result)
-
-
-# ============================================================
-# MAIN LAMBDA HANDLER
-# ============================================================
+# ── Handler ───────────────────────────────────────────────────────────────────
 
 def lambda_handler(event, context):
+    """
+    Main Lambda entry point.
 
-    try:
-        print("AgentCore Refund Lambda event:")
-        print(json.dumps(event, default=str))
+    Args:
+        event   — dict of tool arguments passed by the Gateway
+        context — Lambda context object; client_context carries the tool name
+    """
+    # ── Resolve tool name ─────────────────────────────────────────────────────
+    raw_tool = ""
+    if context.client_context and context.client_context.custom:
+        # The Gateway sets bedrockAgentCoreToolName to "TargetName___toolName".
+        raw_tool = context.client_context.custom.get("bedrockAgentCoreToolName", "")
 
-        tool_name = get_tool_name(context)
+    # Strip the target-name prefix to get just the bare tool name.
+    # If the separator is absent, use the raw value as-is.
+    tool = raw_tool.split("___", 1)[-1] if "___" in raw_tool else raw_tool
 
-        print(f"AgentCore refund tool name: {tool_name}")
+    print(f"Tool called: {tool} | Event: {json.dumps(event)}")
 
-        # ----------------------------------------------------
-        # CHECK REFUND STATUS
-        # ----------------------------------------------------
+    # ── initiate_refund ───────────────────────────────────────────────────────
+    if tool == "initiate_refund":
+        return {
+            "statusCode": 200,
+            "body": json.dumps({
+                "refund_id":  _new_refund_id(),
+                "order_id":   event.get("order_id"),
+                "status":     "APPROVED",
+                "amount":     event.get("amount", 0),   # default to 0 if not supplied
+                "message":    "Refund approved. Credit appears in 3-5 business days.",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }),
+        }
 
-        if tool_name == "check_refund_status":
+    # ── check_refund_status ───────────────────────────────────────────────────
+    if tool == "check_refund_status":
+        # In a real system, this would look up the refund in a database.
+        return {
+            "statusCode": 200,
+            "body": json.dumps({
+                "refund_id": event.get("refund_id"),
+                "status":    "PROCESSING",
+                "eta":       "2-3 business days",
+            }),
+        }
 
-            return check_refund_status(event)
+    # ── get_return_label ──────────────────────────────────────────────────────
+    if tool == "get_return_label":
+        order_id = event.get("order_id", "")
+        return {
+            "statusCode": 200,
+            "body": json.dumps({
+                "order_id":    order_id,
+                # Simulated pre-signed return label URL.
+                "label_url":   f"https://returns.amazon.com/label/{order_id}",
+                "carrier":     "UPS",
+                "valid_until": (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d"),
+            }),
+        }
 
-        # ----------------------------------------------------
-        # GET RETURN LABEL
-        # ----------------------------------------------------
-
-        elif tool_name == "get_return_label":
-
-            return get_return_label(event)
-
-        # ----------------------------------------------------
-        # INITIATE REFUND
-        # ----------------------------------------------------
-
-        elif tool_name == "initiate_refund":
-
-            return initiate_refund(event)
-
-        # ----------------------------------------------------
-        # UNKNOWN TOOL
-        # ----------------------------------------------------
-
-        return error_response(
-            f"Unknown AgentCore refund tool: {tool_name}"
-        )
-
-    except Exception as exc:
-
-        print(f"Unhandled Lambda error: {exc}")
-
-        return error_response(
-            f"Internal Lambda error: {str(exc)}",
-            500
-        )
+    # ── Unknown tool ──────────────────────────────────────────────────────────
+    return {
+        "statusCode": 400,
+        "body": json.dumps({"error": f"Unknown tool: {tool}"}),
+    }

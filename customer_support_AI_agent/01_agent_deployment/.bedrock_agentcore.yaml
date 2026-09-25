@@ -11,12 +11,12 @@ agents:
     container_runtime: none
     source_path: C:\Users\user\Desktop\af2\customer-support-AI-agent-\customer_support_AI_agent
     aws:
-      execution_role: arn:aws:iam::601661065684:role/AmazonBedrockAgentCoreSDKRuntime-us-east-1-aa96c3a063
-      execution_role_auto_create: false
+      execution_role: null
+      execution_role_auto_create: true
       account: '601661065684'
       region: us-east-1
-      ecr_repository: 601661065684.dkr.ecr.us-east-1.amazonaws.com/bedrock-agentcore-customer_support_agent
-      ecr_auto_create: false
+      ecr_repository: null
+      ecr_auto_create: true
       s3_path: null
       s3_auto_create: false
       network_configuration:
