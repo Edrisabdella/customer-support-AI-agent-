@@ -1,0 +1,8 @@
+================================================================================
+AGENTCORE DEV LOG
+Command: dev
+Started: 2026-09-27T01:16:33.131Z
+================================================================================
+
+[04:16:38] [ERROR] [CustomerSupportAgent] Dockerfile not found at C:\Users\user\Desktop\ap\customer-support-AI-agent-\customer_support_AI_agent\app\CustomerSupportAgent\Dockerfile. Container agents require a Dockerfile.
+[04:16:38] [CustomerSupportAgent] Server exited with code 1

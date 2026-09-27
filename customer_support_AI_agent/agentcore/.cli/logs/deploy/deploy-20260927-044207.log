@@ -1,0 +1,16 @@
+================================================================================
+AGENTCORE DEPLOY LOG
+Command: deploy
+Started: 2026-09-27T01:42:07.494Z
+================================================================================
+
+
+[04:42:07] STEP: Validate project
+[04:42:07] Error: CDK project not found at C:\Users\user\Desktop\ap\customer-support-AI-agent-\customer_support_AI_agent\agentcore\cdk. Run 'agentcore create' first.
+[04:42:07] Status: FAILED
+[04:42:07] Duration: 22ms
+
+================================================================================
+FAILED
+Total Duration: 204ms
+================================================================================

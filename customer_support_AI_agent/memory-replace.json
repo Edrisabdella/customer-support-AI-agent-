@@ -1,0 +1,27 @@
+{
+  "memoryId": "customer_support_agent_mem-UYY9NNGNkf",
+  "memoryStrategies": {
+    "deleteMemoryStrategies": [
+      {
+        "memoryStrategyId": "SemanticFacts-9t7z487JrE"
+      },
+      {
+        "memoryStrategyId": "UserPreferences-b7CP869D4e"
+      }
+    ],
+    "addMemoryStrategies": [
+      {
+        "semanticMemoryStrategy": {
+          "name": "customer_facts",
+          "namespaces": ["cs_agent/{actorId}/facts"]
+        }
+      },
+      {
+        "userPreferenceMemoryStrategy": {
+          "name": "customer_preferences",
+          "namespaces": ["cs_agent/{actorId}/preferences"]
+        }
+      }
+    ]
+  }
+}

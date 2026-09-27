@@ -1,0 +1,19 @@
+{
+  "memoryId": "customer_support_agent_mem-UYY9NNGNkf",
+  "memoryStrategies": {
+    "addMemoryStrategies": [
+      {
+        "semanticMemoryStrategy": {
+          "name": "customer_facts",
+          "namespaces": ["cs_agent/{actorId}/facts"]
+        }
+      },
+      {
+        "userPreferenceMemoryStrategy": {
+          "name": "customer_preferences",
+          "namespaces": ["cs_agent/{actorId}/preferences"]
+        }
+      }
+    ]
+  }
+}
